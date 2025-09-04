@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -56,32 +55,34 @@ export default function CohortAiLanding() {
   const [posts, setPosts] = useState<BlogCard[]>([
     {
       title: "AI in Education: From Buzzword to Classroom Impact",
-      excerpt: "How artificial intelligence is moving beyond hype and starting to shape real decisions in schools, from workload planning to personalised support.",
+      excerpt:
+        "How artificial intelligence is moving beyond hype and starting to shape real decisions in schools, from workload planning to personalised support.",
       link: "/blog/ai-in-education-impact",
       image: "https://placehold.co/600x400/bae6fd/082f49?text=AI+Classroom",
     },
     {
       title: "Predicting Staff Absence with Data",
-      excerpt: "Discover how machine learning can help schools anticipate absence patterns, reduce disruption, and keep teaching and learning on track.",
+      excerpt:
+        "Discover how machine learning can help schools anticipate absence patterns, reduce disruption, and keep teaching and learning on track.",
       link: "/blog/predicting-staff-absence",
       image: "https://placehold.co/600x400/bef264/1a2e05?text=Staff+Absence",
     },
     {
       title: "Benchmarking Your School Against ‘Schools Like Yours’",
-      excerpt: "Why comparative data matters: using AI-driven benchmarks to give school leaders clarity and confidence in decision-making.",
+      excerpt:
+        "Why comparative data matters: using AI-driven benchmarks to give school leaders clarity and confidence in decision-making.",
       link: "/blog/benchmarking-schools",
       image: "https://placehold.co/600x400/fde68a/78350f?text=Benchmarking",
     },
   ]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Mailchimp (double opt-in; tags already wired)
-  const MC_FORM_ACTION =
-    "https://supplywell.us7.list-manage.com/subscribe/post?u=5da5b96e4a91f91291ec14ad8&id=80b09b98a9&f_id=0091c2e1f0";
+  // --- Hard-coded Mailchimp details ---
+  const MC_FORM_ACTION = "https://supplywell.us7.list-manage.com/subscribe/post?u=5da5b96e4a91f91291ec14ad8&id=80b09b98a9&f_id=0091c2e1f0";
   const MC_HONEYPOT = "b_5da5b96e4a91f91291ec14ad8_80b09b98a9";
   const MC_TAGS = "Cohort-ThePlan,Cohort-Pilot";
 
-  // Load posts from server route (no client env needed)
+  // Fetch posts from our server route so client doesn't need env
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -89,7 +90,7 @@ export default function CohortAiLanding() {
         const res = await fetch("/api/posts", { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as BlogCard[];
-        if (mounted && data?.length) setPosts(data);
+        if (mounted && data && data.length) setPosts(data);
       } catch (e) {
         console.warn("[CohortAI] Failed to load posts:", e);
       }
@@ -99,14 +100,13 @@ export default function CohortAiLanding() {
     };
   }, []);
 
-  // Header shrink on scroll
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Auto-close toast
   useEffect(() => {
     if (!toast.open) return;
     const t = setTimeout(() => setToast((prev: ToastState) => ({ ...prev, open: false })), 4000);
@@ -118,12 +118,7 @@ export default function CohortAiLanding() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setStatus({ type: "error", msg: "We couldn't reach the mailing list. Please try again." });
-      setToast({
-        open: true,
-        type: "error",
-        title: "Subscription failed",
-        desc: "Network hiccup or provider error. Try again in a moment.",
-      });
+      setToast({ open: true, type: "error", title: "Subscription failed", desc: "Network hiccup or provider error. Try again in a moment." });
     }, 12000);
   };
 
@@ -134,7 +129,7 @@ export default function CohortAiLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
           <div className="flex items-center gap-4 py-1">
             <Image
-              src="https://cohortai.co/wp-content/uploads/2025/09/ask-hAI-1.png"
+              src="/images/logo.png"
               alt="Cohort AI"
               width={200}
               height={40}
@@ -222,6 +217,91 @@ export default function CohortAiLanding() {
         </div>
       </section>
 
+      {/* About */}
+      <section id="about" className="py-16 sm:py-24 bg-white">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-start">
+          <div>
+            <Badge className="mb-4 inline-flex bg-[#25c19b]/20 text-[#25c19b]" variant="secondary">
+              Why Cohort AI
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+              Built by people who understand schools <span className="text-[#25c19b]">and</span> modern AI
+            </h2>
+            <p className="mt-4 text-slate-700 text-lg">
+              We’ve worked across MATs and LA-maintained contexts, supporting leaders with timetabling,
+              staffing, absence, and safeguarding data. On the technology side, we’ve shipped secure,
+              privacy-first products at scale using modern data pipelines and responsible AI.
+            </p>
+            <ul className="mt-6 space-y-3 text-slate-700">
+              <li className="flex gap-3">
+                <ShieldCheck className="h-5 w-5 text-[#25c19b] mt-1" />
+                <div>
+                  <p className="font-semibold text-slate-900">Education-first</p>
+                  <p>Designed around real school workflows—SLT priorities, cover planning, and pupil outcomes.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <ShieldCheck className="h-5 w-5 text-[#25c19b] mt-1" />
+                <div>
+                  <p className="font-semibold text-slate-900">Responsible AI</p>
+                  <p>First-party data, clear governance, and guardrails that put safeguarding and privacy first.</p>
+                </div>
+              </li>
+              <li className="flex gap-3">
+                <ShieldCheck className="h-5 w-5 text-[#25c19b] mt-1" />
+                <div>
+                  <p className="font-semibold text-slate-900">Impact you can measure</p>
+                  <p>Forecast absence, model scenarios, and see how staffing decisions affect outcomes.</p>
+                </div>
+              </li>
+            </ul>
+
+            <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+              <div className="rounded-2xl border bg-white p-4">
+                <div className="text-3xl font-extrabold text-[#25c19b]">10k+</div>
+                <div className="text-xs text-slate-600">pupils modelled in pilots</div>
+              </div>
+              <div className="rounded-2xl border bg-white p-4">
+                <div className="text-3xl font-extrabold text-[#25c19b]">95%</div>
+                <div className="text-xs text-slate-600">leaders found insights useful</div>
+              </div>
+              <div className="rounded-2xl border bg-white p-4">
+                <div className="text-3xl font-extrabold text-[#25c19b]">GDPR</div>
+                <div className="text-xs text-slate-600">privacy by design</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border bg-gradient-to-br from-sky-50 to-[#25c19b]/10 p-6 sm:p-8">
+            <h3 className="text-xl font-bold text-slate-900">What we’re building first</h3>
+            <ul className="mt-4 space-y-3 text-slate-700">
+              <li className="flex gap-3">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-[#25c19b]" />
+                Workforce planning that anticipates absence and simplifies cover.
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-[#25c19b]" />
+                Benchmarking against “schools like yours” with fair, transparent comparators.
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-[#25c19b]" />
+                Clear impact views that connect staffing decisions to pupil outcomes.
+              </li>
+            </ul>
+            <p className="mt-6 text-sm text-slate-600">
+              We’re partnering with a small set of early adopters to shape the roadmap. If you’re
+              a headteacher, COO, or data lead and want in, join the waitlist above and tick “Pilot”.
+            </p>
+            <a
+              href="#top"
+              className="mt-6 inline-flex rounded-xl bg-[#25c19b] px-4 py-2 text-white font-medium hover:opacity-90"
+            >
+              Join the waitlist
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Blog teaser */}
       <section id="blog" className="py-16 sm:py-24 bg-gradient-to-b from-white to-[#25c19b]/5">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -263,7 +343,7 @@ export default function CohortAiLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-8 text-sm">
           <div>
             <div className="flex items-center gap-4 py-1">
-              <Image src="https://cohortai.co/wp-content/uploads/2025/09/ask-hAI-1.png" alt="Cohort AI" width={200} height={40} sizes="(max-width: 768px) 120px, 200px" className="h-10 w-auto object-contain" />
+              <Image src="/images/logo.png" alt="Cohort AI" width={200} height={40} sizes="(max-width: 768px) 120px, 200px" className="h-10 w-auto object-contain" />
             </div>
             <p className="mt-3 text-slate-700 font-medium">Make better decisions with data. Workforce planning for schools.</p>
           </div>
