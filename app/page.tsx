@@ -5,6 +5,7 @@ import { Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 function getPublicEnv(key, fallback = "") {
   try {
@@ -37,12 +38,10 @@ function Toast({ open, type, title, desc, onClose }) {
 }
 
 // ---- Headless CMS (Sanity) integration (optional) ----
-// 1) Set NEXT_PUBLIC_SANITY_PROJECT_ID and NEXT_PUBLIC_SANITY_DATASET (public dataset recommended for read-only)
-// 2) The component will fetch posts at runtime and replace the local mock.
 async function fetchSanityPosts() {
   const projectId = getPublicEnv("NEXT_PUBLIC_SANITY_PROJECT_ID", "");
   const dataset = getPublicEnv("NEXT_PUBLIC_SANITY_DATASET", "");
-  if (!projectId || !dataset) return null; // CMS not configured
+  if (!projectId || !dataset) return null;
 
   const endpoint = `https://${projectId}.api.sanity.io/v2023-10-01/data/query/${dataset}`;
   const groq = encodeURIComponent(`*[_type == "post" && defined(slug.current)] | order(publishedAt desc)[0...6]{
@@ -63,7 +62,6 @@ async function fetchSanityPosts() {
     image: p?.mainImage?.asset?.url || "https://placehold.co/600x400/e2e8f0/0f172a?text=The+Plan",
   }));
 }
-// ------------------------------------------------------
 
 export default function CohortAiLanding() {
   const [email, setEmail] = useState("");
@@ -72,7 +70,6 @@ export default function CohortAiLanding() {
   const [toast, setToast] = useState({ open: false, type: "info", title: "", desc: "" });
   const timeoutRef = useRef(null);
 
-  // Default mocked posts (used if CMS not configured)
   const defaultPosts = [
     {
       title: "AI in Education: From Buzzword to Classroom Impact",
@@ -116,7 +113,6 @@ export default function CohortAiLanding() {
     }, 12000);
   };
 
-  // Shrink header on scroll
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -124,7 +120,6 @@ export default function CohortAiLanding() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Fetch CMS posts (if configured). Falls back to defaultPosts on error/unset.
   useEffect(() => {
     let mounted = true;
     fetchSanityPosts()
@@ -140,7 +135,6 @@ export default function CohortAiLanding() {
     return () => (mounted = false);
   }, []);
 
-  // Toast auto-hide
   useEffect(() => {
     if (!toast.open) return;
     const t = setTimeout(() => setToast((prev) => ({ ...prev, open: false })), 4000);
@@ -149,7 +143,6 @@ export default function CohortAiLanding() {
 
   return (
     <div className="bg-gradient-to-br from-sky-50 via-white to-[#25c19b]/10 text-slate-900 font-sans">
-      {/* Sticky top nav with shrink on scroll */}
       <header
         className={`sticky top-0 z-40 border-b transition-all duration-300 ${
           scrolled ? "h-14 bg-white/95 shadow-md" : "h-20 bg-white/70"
@@ -157,10 +150,14 @@ export default function CohortAiLanding() {
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
           <div className="flex items-center gap-4 py-1">
-            <img
+            <Image
               src="https://cohortai.co/wp-content/uploads/2025/09/ask-hAI-1.png"
               alt="Cohort AI"
-              className={`object-contain transition-all duration-300 ${scrolled ? "h-8" : "h-10"}`}
+              width={200}
+              height={40}
+              priority
+              sizes="(max-width: 768px) 120px, 200px"
+              className={`object-contain transition-all duration-300 ${scrolled ? "h-8" : "h-10"} w-auto`}
             />
             <Badge variant="secondary" className="hidden sm:inline-flex bg-[#25c19b]/20 text-[#25c19b]">Coming Soon</Badge>
           </div>
@@ -171,7 +168,6 @@ export default function CohortAiLanding() {
         </div>
       </header>
 
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28 text-center">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -179,13 +175,13 @@ export default function CohortAiLanding() {
               <Sparkles className="h-3.5 w-3.5 text-[#25c19b]" /> Make better decisions with data
             </Badge>
             <h1 className="text-4xl sm:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.05] bg-gradient-to-r from-[#25c19b] via-sky-500 to-[#25c19b] bg-[length:200%_auto] bg-clip-text text-transparent animate-[shimmer_6s_linear_infinite]">
-              We're not quite ready yet
+              We’re not quite ready yet
             </h1>
             <p className="mt-4 text-slate-700 text-lg max-w-2xl mx-auto">
               Cohort AI will help schools make better decisions with data — from proactive workforce planning to understanding how absence impacts student outcomes.
             </p>
             <p className="mt-6 text-lg font-semibold text-[#25c19b]">
-              Whilst you're waiting, enjoy our new AI in education blog & newsletter called <span className="text-sky-600">The Plan</span>.
+              Whilst you’re waiting, enjoy our new AI in education blog & newsletter called <span className="text-sky-600">The Plan</span>.
             </p>
           </motion.div>
 
@@ -243,7 +239,6 @@ export default function CohortAiLanding() {
         </div>
       </section>
 
-      {/* Blog teaser */}
       <section id="blog" className="py-16 sm:py-24 bg-gradient-to-b from-white to-[#25c19b]/5">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-center text-sky-900">Latest from The Plan</h2>
@@ -252,14 +247,15 @@ export default function CohortAiLanding() {
               <motion.div
                 key={post.title}
                 whileHover={{ scale: 1.03 }}
-                className="rounded-2xl border bg-white hover:shadow-lg transition overflow-hidden"
+                className="rounded-2xl border bg-white hover:shadow-lg transition overflow-hidden relative h-full"
               >
                 <div className="relative h-40 w-full">
-                  <img
+                  <Image
                     src={post.image}
                     alt={post.title}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 400px"
                   />
                 </div>
                 <div className="p-6">
@@ -278,12 +274,11 @@ export default function CohortAiLanding() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="py-12 border-t bg-white/60">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-8 text-sm">
           <div>
             <div className="flex items-center gap-4 py-1">
-              <img src="https://cohortai.co/wp-content/uploads/2025/09/ask-hAI-1.png" alt="Cohort AI" className="h-10 w-auto object-contain" />
+              <Image src="https://cohortai.co/wp-content/uploads/2025/09/ask-hAI-1.png" alt="Cohort AI" width={200} height={40} sizes="(max-width: 768px) 120px, 200px" className="h-10 w-auto object-contain" />
             </div>
             <p className="mt-3 text-slate-700 font-medium">Make better decisions with data. Workforce planning for schools.</p>
           </div>
@@ -297,29 +292,4 @@ export default function CohortAiLanding() {
           <div>
             <div className="font-semibold mb-3 text-[#25c19b]">Legal</div>
             <ul className="space-y-2 text-slate-700">
-              <li><a href="#" className="hover:bg-gradient-to-r hover:from-[#25c19b] hover:to-sky-500 hover:bg-clip-text hover:text-transparent">Privacy</a></li>
-              <li><a href="#" className="hover:bg-gradient-to-r hover:from-[#25c19b] hover:to-sky-500 hover:bg-clip-text hover:text-transparent">Terms</a></li>
-              <li className="flex items-center gap-2 text-slate-500"><ShieldCheck className="h-4 w-4" /> Built for trust</li>
-            </ul>
-          </div>
-        </div>
-        <div className="mt-8 text-center text-xs text-slate-500">© {new Date().getFullYear()} Cohort AI. All rights reserved.</div>
-      </footer>
-
-      <Toast
-        open={toast.open}
-        type={toast.type}
-        title={toast.title}
-        desc={toast.desc}
-        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-      />
-
-      <style jsx global>{`
-        @keyframes shimmer {
-          0% { background-position: 0% 50%; }
-          100% { background-position: 200% 50%; }
-        }
-      `}</style>
-    </div>
-  );
-}
+              <li><a href="#"
