@@ -7,19 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 
-function getPublicEnv(key, fallback = "") {
+function getPublicEnv(key: string, fallback = ""): string {
   try {
-    if (typeof process !== "undefined" && process.env && typeof process.env[key] !== "undefined") {
-      return process.env[key];
+    if (typeof process !== "undefined" && (process as any).env && typeof (process as any).env[key] !== "undefined") {
+      return (process as any).env[key];
     }
   } catch {}
-  if (typeof window !== "undefined" && window.__ENV__ && typeof window.__ENV__[key] !== "undefined") {
-    return window.__ENV__[key];
+  if (typeof window !== "undefined" && (window as any).__ENV__ && typeof (window as any).__ENV__[key] !== "undefined") {
+    return (window as any).__ENV__[key];
   }
   return fallback;
 }
 
-function Toast({ open, type, title, desc, onClose }) {
+type ToastProps = {
+  open: boolean;
+  type: "info" | "success" | "error";
+  title: string;
+  desc?: string;
+  onClose: () => void;
+};
+
+function Toast({ open, type, title, desc, onClose }: ToastProps) {
   if (!open) return null;
   const color = type === "error" ? "bg-red-600" : type === "success" ? "bg-[#25c19b]" : "bg-sky-600";
   return (
@@ -55,7 +63,7 @@ async function fetchSanityPosts() {
   if (!res.ok) throw new Error(`Sanity query failed: ${res.status}`);
   const json = await res.json();
   const items = json?.result || [];
-  return items.map((p) => ({
+  return items.map((p: any) => ({
     title: p.title || "Untitled",
     excerpt: (p.excerpt || "").trim(),
     link: `/blog/${p?.slug?.current ?? "post"}`,
@@ -64,11 +72,11 @@ async function fetchSanityPosts() {
 }
 
 export default function CohortAiLanding() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState({ type: "idle", msg: "" });
-  const [scrolled, setScrolled] = useState(false);
-  const [toast, setToast] = useState({ open: false, type: "info", title: "", desc: "" });
-  const timeoutRef = useRef(null);
+  const [email, setEmail] = useState<string>("");
+  const [status, setStatus] = useState<{ type: "idle" | "loading" | "success" | "error"; msg: string }>({ type: "idle", msg: "" });
+  const [scrolled, setScrolled] = useState<boolean>(false);
+  const [toast, setToast] = useState<{ open: boolean; type: "info" | "success" | "error"; title: string; desc?: string }>({ open: false, type: "info", title: "", desc: "" });
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const defaultPosts = [
     {
@@ -100,7 +108,7 @@ export default function CohortAiLanding() {
   const MC_TAGS = getPublicEnv("NEXT_PUBLIC_MC_TAGS", "The Plan,Early Access");
   const mcReady = !!MC_FORM_ACTION;
 
-  const handleMailchimpSubmit = (e) => {
+  const handleMailchimpSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     if (!mcReady) {
       e.preventDefault();
       return;
@@ -113,6 +121,7 @@ export default function CohortAiLanding() {
     }, 12000);
   };
 
+  // Header shrink on scroll
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -120,34 +129,50 @@ export default function CohortAiLanding() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Load CMS posts if configured
   useEffect(() => {
     let mounted = true;
-    fetchSanityPosts()
-      .then((items) => {
+    (async () => {
+      try {
+        const items = await fetchSanityPosts();
         if (mounted && items && items.length) {
           setPosts(items);
           console.info("[CohortAI] CMS posts loaded:", items.length);
         } else {
           console.info("[CohortAI] CMS not configured or no posts; using defaults");
         }
-      })
-      .catch((err) => console.warn("[CohortAI] CMS fetch failed:", err?.message || err));
-    return () => (mounted = false);
+      } catch (err) {
+        console.warn("[CohortAI] CMS fetch failed:", (err as Error)?.message || err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  // Toast auto-hide
   useEffect(() => {
     if (!toast.open) return;
     const t = setTimeout(() => setToast((prev) => ({ ...prev, open: false })), 4000);
     return () => clearTimeout(t);
   }, [toast.open]);
 
+  // --- Dev "test cases" ---
+  useEffect(() => {
+    const url = MC_FORM_ACTION;
+    const looksRight = /^https:\/\/.+\.list-manage\.com\/subscribe\/post\?/.test(url) && url.includes("u=") && url.includes("id=") && url.includes("f_id=");
+    console.assert(looksRight || !url, "[Test] Mailchimp action likely invalid. Got:", url);
+
+    console.assert(!!MC_HONEYPOT, "[Test] Honeypot name empty.");
+
+    const parsed = MC_TAGS.split(",").map((t: string) => t.trim()).filter(Boolean);
+    console.assert(parsed.length > 0, "[Test] Tags empty or malformed.");
+  }, [MC_FORM_ACTION, MC_HONEYPOT, MC_TAGS]);
+
   return (
     <div className="bg-gradient-to-br from-sky-50 via-white to-[#25c19b]/10 text-slate-900 font-sans">
-      <header
-        className={`sticky top-0 z-40 border-b transition-all duration-300 ${
-          scrolled ? "h-14 bg-white/95 shadow-md" : "h-20 bg-white/70"
-        }`}
-      >
+      {/* Header */}
+      <header className={`sticky top-0 z-40 border-b transition-all duration-300 ${scrolled ? "h-14 bg-white/95 shadow-md" : "h-20 bg-white/70"}`}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
           <div className="flex items-center gap-4 py-1">
             <Image
@@ -168,6 +193,7 @@ export default function CohortAiLanding() {
         </div>
       </header>
 
+      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28 text-center">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -185,6 +211,7 @@ export default function CohortAiLanding() {
             </p>
           </motion.div>
 
+          {/* Hidden iframe target for Mailchimp POST */}
           <iframe
             title="mc-target"
             name="mc-target"
@@ -193,8 +220,8 @@ export default function CohortAiLanding() {
               if (timeoutRef.current) clearTimeout(timeoutRef.current);
               setStatus((prev) => {
                 if (prev.type === "loading") {
-                  setToast({ open: true, type: "success", title: "You're on the list!", desc: "Check your email to confirm your subscription." });
-                  return { type: "success", msg: "You're on the list. Check your email to confirm." };
+                  setToast({ open: true, type: "success", title: "You&apos;re on the list!", desc: "Check your email to confirm your subscription." });
+                  return { type: "success", msg: "You&apos;re on the list. Check your email to confirm." };
                 }
                 return prev;
               });
@@ -216,13 +243,13 @@ export default function CohortAiLanding() {
               required
               className="h-11 rounded-xl border-[#25c19b]/40 focus:border-[#25c19b] focus:ring-[#25c19b]/40"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               disabled={!mcReady}
               title={!mcReady ? "Mailing list not configured yet" : undefined}
             />
             <input type="text" name={MC_HONEYPOT} tabIndex={-1} autoComplete="off" className="hidden" />
             <input type="hidden" name="tags" value={MC_TAGS} />
-            {MC_TAGS.split(",").map((t, i) => (
+            {MC_TAGS.split(",").map((t: string, i: number) => (
               <input key={i} type="hidden" name="tags[]" value={t.trim()} />
             ))}
             <Button
@@ -239,6 +266,7 @@ export default function CohortAiLanding() {
         </div>
       </section>
 
+      {/* Blog teaser */}
       <section id="blog" className="py-16 sm:py-24 bg-gradient-to-b from-white to-[#25c19b]/5">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-center text-sky-900">Latest from The Plan</h2>
@@ -274,6 +302,7 @@ export default function CohortAiLanding() {
         </div>
       </section>
 
+      {/* Footer */}
       <footer className="py-12 border-t bg-white/60">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-8 text-sm">
           <div>
@@ -285,11 +314,46 @@ export default function CohortAiLanding() {
           <div>
             <div className="font-semibold mb-3 text-[#25c19b]">Explore</div>
             <ul className="space-y-2 text-slate-700">
-              <li><a href="#about" className="hover:bg-gradient-to-r hover:from-[#25c19b] hover:to-sky-500 hover:bg-clip-text hover:text-transparent">About</a></li>
-              <li><a href="#blog" className="hover:bg-gradient-to-r hover:from-sky-500 hover:to-[#25c19b] hover:bg-clip-text hover:text-transparent">The Plan Blog</a></li>
+              <li>
+                <a href="#about" className="hover:bg-gradient-to-r hover:from-[#25c19b] hover:to-sky-500 hover:bg-clip-text hover:text-transparent">About</a>
+              </li>
+              <li>
+                <a href="#blog" className="hover:bg-gradient-to-r hover:from-sky-500 hover:to-[#25c19b] hover:bg-clip-text hover:text-transparent">The Plan Blog</a>
+              </li>
             </ul>
           </div>
           <div>
             <div className="font-semibold mb-3 text-[#25c19b]">Legal</div>
             <ul className="space-y-2 text-slate-700">
-              <li><a href="#"
+              <li>
+                <a href="/privacy" className="hover:bg-gradient-to-r hover:from-[#25c19b] hover:to-sky-500 hover:bg-clip-text hover:text-transparent">Privacy</a>
+              </li>
+              <li>
+                <a href="/terms" className="hover:bg-gradient-to-r hover:from-[#25c19b] hover:to-sky-500 hover:bg-clip-text hover:text-transparent">Terms</a>
+              </li>
+              <li className="flex items-center gap-2 text-slate-500">
+                <ShieldCheck className="h-4 w-4" /> Built for trust
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="mt-8 text-center text-xs text-slate-500">© {new Date().getFullYear()} Cohort AI. All rights reserved.</div>
+      </footer>
+
+      <Toast
+        open={toast.open}
+        type={toast.type}
+        title={toast.title}
+        desc={toast.desc}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
+
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
+      `}</style>
+    </div>
+  );
+}
