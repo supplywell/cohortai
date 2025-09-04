@@ -82,7 +82,8 @@ export default function CohortAiLanding() {
   const MC_HONEYPOT = "b_5da5b96e4a91f91291ec14ad8_80b09b98a9";
   const MC_TAGS = "Cohort-ThePlan,Cohort-Pilot";
 
-  const handleMailchimpSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  // Updated function signature: removed event parameter
+  const handleMailchimpSubmit = (): void => {
     setStatus({ type: "loading", msg: "" });
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
