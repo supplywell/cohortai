@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { PortableText, type PortableTextComponents } from "@portabletext/react";
+import type { PortableTextBlock } from "@portabletext/types";
 import { CalendarDays, ArrowLeft } from "lucide-react";
 import ShareButton from "@/components/ShareButton";
-import type { PortableTextBlock } from "@portabletext/types";
 
 // Revalidate pages every 60s (ISR)
 export const revalidate = 60;
@@ -20,13 +20,10 @@ type Post = {
   excerpt?: string;
   slug: string;
   coverImage?: string;
-  body?: PortableTextBlock[];   // ← was any[]
+  body?: PortableTextBlock[];
   publishedAt?: string;
   author?: Author;
 };
-
-
-
 
 const components: PortableTextComponents = {
   block: {
@@ -45,13 +42,11 @@ const components: PortableTextComponents = {
     strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
     em: ({ children }) => <em className="italic">{children}</em>,
     link: ({ value, children }) => (
-      <a href={value?.href} className="text-sky-700 hover:underline" target="_blank" rel="noreferrer">
+      <a href={(value as { href?: string })?.href} className="text-sky-700 hover:underline" target="_blank" rel="noreferrer">
         {children}
       </a>
     ),
-    code: ({ children }) => (
-      <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">{children}</code>
-    ),
+    code: ({ children }) => <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">{children}</code>,
   },
 };
 
@@ -95,7 +90,7 @@ async function getPost(slug: string): Promise<Post | null> {
 }
 
 // --- Utils ---
-function readingTime(body?: PortableTextBlock[]): string {  // ← was any[]
+function readingTime(body?: PortableTextBlock[]): string {
   if (!body) return "3 min read";
   const words = JSON.stringify(body).split(/\s+/).length;
   const minutes = Math.max(2, Math.round(words / 200));
@@ -116,9 +111,7 @@ function fmtDate(iso?: string): string | null {
   }
 }
 
-// --- Comments (simple starter, Giscus-ready) ---
-// at the top you already have: import Link from "next/link";
-
+// --- Comments (placeholder; replace with Giscus when ready) ---
 function Comments() {
   const giscusRepo = process.env.NEXT_PUBLIC_GISCUS_REPO;
   const giscusRepoId = process.env.NEXT_PUBLIC_GISCUS_REPO_ID;
@@ -129,8 +122,7 @@ function Comments() {
     return (
       <div className="rounded-2xl border bg-white p-6 text-sm text-slate-600">
         <p>
-          Comments powered by <span className="font-semibold">Giscus</span> will appear here in
-          production. (We’ve detected config vars — wire in the Giscus component when ready.)
+          Comments powered by <span className="font-semibold">Giscus</span> will appear here in production.
         </p>
       </div>
     );
@@ -139,17 +131,15 @@ function Comments() {
   return (
     <div className="rounded-2xl border bg-slate-50 p-6 text-sm text-slate-600">
       Comments are coming soon. Want early access?{" "}
-      <Link href="/#top" className="text-sky-700 hover:underline">
-        Join the waitlist
-      </Link>.
+      <Link href="/#top" className="text-sky-700 hover:underline">Join the waitlist</Link>.
     </div>
   );
 }
 
-
 // --- Page ---
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await getPost(params.slug);
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await getPost(slug);
   if (!post) notFound();
 
   const date = fmtDate(post.publishedAt);
@@ -168,29 +158,26 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             <span aria-hidden className="text-slate-400">/</span>
             <Link href="/#blog" className="text-slate-700 hover:text-slate-900">The Plan</Link>
           </div>
-
-          {/* Share button lives on the right */}
           <ShareButton title={post.title} />
         </div>
       </div>
 
-      
-
       {/* Article */}
       <article className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pb-24">
-
-        <div className="rounded-3xl border bg-white p-6 sm:p-10 shadow-sm">{post.coverImage && (
-  <div className="relative w-full aspect-[16/9] mb-6">
-    <Image
-      src={post.coverImage}
-      alt={post.title}
-      fill
-      sizes="(max-width: 768px) 100vw, 768px"
-      className="object-cover rounded-2xl border"
-      priority
-    />
-  </div>
-)}
+        <div className="rounded-3xl border bg-white p-6 sm:p-10 shadow-sm">
+          {/* Cover image inside article (no overlap) */}
+          {post.coverImage && (
+            <div className="relative w-full aspect-[16/9] mb-6">
+              <Image
+                src={post.coverImage}
+                alt={post.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="object-cover rounded-2xl border"
+                priority
+              />
+            </div>
+          )}
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{post.title}</h1>
 
