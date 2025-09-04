@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PortableText, type PortableTextComponents } from "@portabletext/react";
 import { CalendarDays, ArrowLeft } from "lucide-react";
 import ShareButton from "@/components/ShareButton";
+import type { PortableTextBlock } from "@portabletext/types";
 
 // Revalidate pages every 60s (ISR)
 export const revalidate = 60;
@@ -19,10 +20,13 @@ type Post = {
   excerpt?: string;
   slug: string;
   coverImage?: string;
-  body?: any[];
+  body?: PortableTextBlock[];   // ← was any[]
   publishedAt?: string;
   author?: Author;
 };
+
+
+
 
 const components: PortableTextComponents = {
   block: {
@@ -91,7 +95,7 @@ async function getPost(slug: string): Promise<Post | null> {
 }
 
 // --- Utils ---
-function readingTime(body?: any[]): string {
+function readingTime(body?: PortableTextBlock[]): string {  // ← was any[]
   if (!body) return "3 min read";
   const words = JSON.stringify(body).split(/\s+/).length;
   const minutes = Math.max(2, Math.round(words / 200));
@@ -113,6 +117,8 @@ function fmtDate(iso?: string): string | null {
 }
 
 // --- Comments (simple starter, Giscus-ready) ---
+// at the top you already have: import Link from "next/link";
+
 function Comments() {
   const giscusRepo = process.env.NEXT_PUBLIC_GISCUS_REPO;
   const giscusRepoId = process.env.NEXT_PUBLIC_GISCUS_REPO_ID;
@@ -132,10 +138,14 @@ function Comments() {
 
   return (
     <div className="rounded-2xl border bg-slate-50 p-6 text-sm text-slate-600">
-      Comments are coming soon. Want early access? <a href="/#top" className="text-sky-700 hover:underline">Join the waitlist</a>.
+      Comments are coming soon. Want early access?{" "}
+      <Link href="/#top" className="text-sky-700 hover:underline">
+        Join the waitlist
+      </Link>.
     </div>
   );
 }
+
 
 // --- Page ---
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
