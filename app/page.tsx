@@ -58,21 +58,21 @@ export default function CohortAiLanding() {
       excerpt:
         "How artificial intelligence is moving beyond hype and starting to shape real decisions in schools, from workload planning to personalised support.",
       link: "/blog/ai-in-education-impact",
-      image: "https://placehold.co/600x400/bae6fd/082f49?text=AI+Classroom",
+      image: "https://via.placeholder.com/600x400/bae6fd/082f49?text=AI+Classroom",
     },
     {
       title: "Predicting Staff Absence with Data",
       excerpt:
         "Discover how machine learning can help schools anticipate absence patterns, reduce disruption, and keep teaching and learning on track.",
       link: "/blog/predicting-staff-absence",
-      image: "https://placehold.co/600x400/bef264/1a2e05?text=Staff+Absence",
+      image: "https://via.placeholder.com/600x400/bef264/1a2e05?text=Staff+Absence",
     },
     {
       title: "Benchmarking Your School Against ‘Schools Like Yours’",
       excerpt:
         "Why comparative data matters: using AI-driven benchmarks to give school leaders clarity and confidence in decision-making.",
       link: "/blog/benchmarking-schools",
-      image: "https://placehold.co/600x400/fde68a/78350f?text=Benchmarking",
+      image: "https://via.placeholder.com/600x400/fde68a/78350f?text=Benchmarking",
     },
   ];
   const [posts] = useState<BlogCard[]>(defaultPosts);
