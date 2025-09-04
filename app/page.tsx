@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,25 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 
-function getPublicEnv(key: string, fallback = ""): string {
-  try {
-    if (typeof process !== "undefined" && (process as any).env && typeof (process as any).env[key] !== "undefined") {
-      return (process as any).env[key];
-    }
-  } catch {}
-  if (typeof window !== "undefined" && (window as any).__ENV__ && typeof (window as any).__ENV__[key] !== "undefined") {
-    return (window as any).__ENV__[key];
-  }
-  return fallback;
-}
+// -------------------- Types --------------------
+type ToastKind = "info" | "success" | "error";
 
-type ToastProps = {
+interface ToastProps {
   open: boolean;
-  type: "info" | "success" | "error";
+  type: ToastKind;
   title: string;
   desc?: string;
   onClose: () => void;
-};
+}
+
+interface BlogCard {
+  title: string;
+  excerpt: string;
+  link: string;
+  image: string;
+}
 
 function Toast({ open, type, title, desc, onClose }: ToastProps) {
   if (!open) return null;
@@ -45,40 +44,15 @@ function Toast({ open, type, title, desc, onClose }: ToastProps) {
   );
 }
 
-// ---- Headless CMS (Sanity) integration (optional) ----
-async function fetchSanityPosts() {
-  const projectId = getPublicEnv("NEXT_PUBLIC_SANITY_PROJECT_ID", "");
-  const dataset = getPublicEnv("NEXT_PUBLIC_SANITY_DATASET", "");
-  if (!projectId || !dataset) return null;
-
-  const endpoint = `https://${projectId}.api.sanity.io/v2023-10-01/data/query/${dataset}`;
-  const groq = encodeURIComponent(`*[_type == "post" && defined(slug.current)] | order(publishedAt desc)[0...6]{
-    title,
-    "excerpt": coalesce(pt::text(body)[0..180], description),
-    slug,
-    mainImage{asset->{url}},
-  }`);
-
-  const res = await fetch(`${endpoint}?query=${groq}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Sanity query failed: ${res.status}`);
-  const json = await res.json();
-  const items = json?.result || [];
-  return items.map((p: any) => ({
-    title: p.title || "Untitled",
-    excerpt: (p.excerpt || "").trim(),
-    link: `/blog/${p?.slug?.current ?? "post"}`,
-    image: p?.mainImage?.asset?.url || "https://placehold.co/600x400/e2e8f0/0f172a?text=The+Plan",
-  }));
-}
-
 export default function CohortAiLanding() {
+  const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [status, setStatus] = useState<{ type: "idle" | "loading" | "success" | "error"; msg: string }>({ type: "idle", msg: "" });
   const [scrolled, setScrolled] = useState<boolean>(false);
-  const [toast, setToast] = useState<{ open: boolean; type: "info" | "success" | "error"; title: string; desc?: string }>({ open: false, type: "info", title: "", desc: "" });
+  const [toast, setToast] = useState<{ open: boolean; type: ToastKind; title: string; desc?: string }>({ open: false, type: "info", title: "", desc: "" });
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const defaultPosts = [
+  const defaultPosts: BlogCard[] = [
     {
       title: "AI in Education: From Buzzword to Classroom Impact",
       excerpt:
@@ -101,18 +75,14 @@ export default function CohortAiLanding() {
       image: "https://placehold.co/600x400/fde68a/78350f?text=Benchmarking",
     },
   ];
-  const [posts, setPosts] = useState(defaultPosts);
+  const [posts] = useState<BlogCard[]>(defaultPosts);
 
-  const MC_FORM_ACTION = getPublicEnv("NEXT_PUBLIC_MC_FORM_ACTION", "");
-  const MC_HONEYPOT = getPublicEnv("NEXT_PUBLIC_MC_HONEYPOT", "b_xxx_xxx");
-  const MC_TAGS = getPublicEnv("NEXT_PUBLIC_MC_TAGS", "The Plan,Early Access");
-  const mcReady = !!MC_FORM_ACTION;
+  // --- Hard-coded Mailchimp details ---
+  const MC_FORM_ACTION = "https://supplywell.us7.list-manage.com/subscribe/post?u=5da5b96e4a91f91291ec14ad8&id=80b09b98a9&f_id=0091c2e1f0";
+  const MC_HONEYPOT = "b_5da5b96e4a91f91291ec14ad8_80b09b98a9";
+  const MC_TAGS = "Cohort-ThePlan,Cohort-Pilot";
 
   const handleMailchimpSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
-    if (!mcReady) {
-      e.preventDefault();
-      return;
-    }
     setStatus({ type: "loading", msg: "" });
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
@@ -121,7 +91,6 @@ export default function CohortAiLanding() {
     }, 12000);
   };
 
-  // Header shrink on scroll
   useEffect(() => {
     if (typeof window === "undefined") return;
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -129,45 +98,11 @@ export default function CohortAiLanding() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Load CMS posts if configured
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const items = await fetchSanityPosts();
-        if (mounted && items && items.length) {
-          setPosts(items);
-          console.info("[CohortAI] CMS posts loaded:", items.length);
-        } else {
-          console.info("[CohortAI] CMS not configured or no posts; using defaults");
-        }
-      } catch (err) {
-        console.warn("[CohortAI] CMS fetch failed:", (err as Error)?.message || err);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Toast auto-hide
   useEffect(() => {
     if (!toast.open) return;
     const t = setTimeout(() => setToast((prev) => ({ ...prev, open: false })), 4000);
     return () => clearTimeout(t);
   }, [toast.open]);
-
-  // --- Dev "test cases" ---
-  useEffect(() => {
-    const url = MC_FORM_ACTION;
-    const looksRight = /^https:\/\/.+\.list-manage\.com\/subscribe\/post\?/.test(url) && url.includes("u=") && url.includes("id=") && url.includes("f_id=");
-    console.assert(looksRight || !url, "[Test] Mailchimp action likely invalid. Got:", url);
-
-    console.assert(!!MC_HONEYPOT, "[Test] Honeypot name empty.");
-
-    const parsed = MC_TAGS.split(",").map((t: string) => t.trim()).filter(Boolean);
-    console.assert(parsed.length > 0, "[Test] Tags empty or malformed.");
-  }, [MC_FORM_ACTION, MC_HONEYPOT, MC_TAGS]);
 
   return (
     <div className="bg-gradient-to-br from-sky-50 via-white to-[#25c19b]/10 text-slate-900 font-sans">
@@ -220,8 +155,11 @@ export default function CohortAiLanding() {
               if (timeoutRef.current) clearTimeout(timeoutRef.current);
               setStatus((prev) => {
                 if (prev.type === "loading") {
-                  setToast({ open: true, type: "success", title: "You&apos;re on the list!", desc: "Check your email to confirm your subscription." });
-                  return { type: "success", msg: "You&apos;re on the list. Check your email to confirm." };
+                  // Toast for immediate feedback
+                  setToast({ open: true, type: "success", title: "Please confirm your email", desc: "We’ve sent you a confirmation link. Click it to complete your subscription." });
+                  // Soft navigate to thank-you page so users don't sit on the hero
+                  router.push("/thanks");
+                  return { type: "success", msg: "Check your inbox for a confirmation email to complete sign‑up." };
                 }
                 return prev;
               });
@@ -229,7 +167,7 @@ export default function CohortAiLanding() {
           />
 
           <form
-            action={mcReady ? MC_FORM_ACTION : undefined}
+            action={MC_FORM_ACTION}
             method="post"
             target="mc-target"
             onSubmit={handleMailchimpSubmit}
@@ -244,8 +182,6 @@ export default function CohortAiLanding() {
               className="h-11 rounded-xl border-[#25c19b]/40 focus:border-[#25c19b] focus:ring-[#25c19b]/40"
               value={email}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              disabled={!mcReady}
-              title={!mcReady ? "Mailing list not configured yet" : undefined}
             />
             <input type="text" name={MC_HONEYPOT} tabIndex={-1} autoComplete="off" className="hidden" />
             <input type="hidden" name="tags" value={MC_TAGS} />
@@ -255,13 +191,12 @@ export default function CohortAiLanding() {
             <Button
               type="submit"
               className="h-11 rounded-xl bg-[#25c19b] hover:bg-gradient-to-r hover:from-[#25c19b] hover:to-sky-500"
-              disabled={status.type === "loading" || !mcReady}
+              disabled={status.type === "loading"}
             >
               {status.type === "loading" ? "Joining…" : "Join waitlist"}
             </Button>
           </form>
           {status.type === "success" && <p className="mt-3 text-sm text-[#25c19b]">{status.msg}</p>}
-          {!mcReady && <p className="mt-3 text-sm text-slate-500">Mailing list coming soon — the button is disabled until it’s configured.</p>}
           {status.type === "error" && <p className="mt-3 text-sm text-red-600">{status.msg}</p>}
         </div>
       </section>
