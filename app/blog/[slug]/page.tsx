@@ -164,24 +164,24 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         </div>
       </div>
 
-      {/* Hero image */}
-      {post.coverImage && (
-        <div className="relative h-[38vh] min-h-[240px] w-full">
-          <Image
-            src={post.coverImage}
-            alt={post.title}
-            fill
-            sizes="100vw"
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent" />
-        </div>
-      )}
+      
 
       {/* Article */}
-      <article className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 -mt-16 pb-24">
-        <div className="rounded-3xl border bg-white p-6 sm:p-10 shadow-sm">
+      <article className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pb-24">
+
+        <div className="rounded-3xl border bg-white p-6 sm:p-10 shadow-sm">{post.coverImage && (
+  <div className="relative w-full aspect-[16/9] mb-6">
+    <Image
+      src={post.coverImage}
+      alt={post.title}
+      fill
+      sizes="(max-width: 768px) 100vw, 768px"
+      className="object-cover rounded-2xl border"
+      priority
+    />
+  </div>
+)}
+
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">{post.title}</h1>
 
           {/* Meta */}
